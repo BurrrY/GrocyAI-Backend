@@ -1,0 +1,6 @@
+flask
+openai>=1.0.0
+pygrocy
+rapidfuzz
+flask_cors
+elevenlabs
