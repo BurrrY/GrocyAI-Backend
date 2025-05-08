@@ -6,7 +6,7 @@ import os
 from pygrocy import Grocy, TransactionType
 from rapidfuzz import fuzz
 
-grocy = Grocy(os.environ.get("GROCY_API_URL"), os.environ.get("GROCY_API_KEY"), port = 9283)
+grocy = Grocy(os.environ.get("GROCY_API_URL"), os.environ.get("GROCY_API_KEY"), port = int(os.environ.get("GROCY_API_PORT")))
 
 def combined_score(c_query: str, target: str, *, score_cutoff=None, **kwargs) -> float:
     return (
