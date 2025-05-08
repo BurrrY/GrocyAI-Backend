@@ -180,7 +180,7 @@ def query_gpt(user_text: str) -> str:
 
 
 def transcribe_with_whisper_server(filepath: str) -> str:
-    url = "http://192.168.178.13:9025/asr"
+    url = os.environ.get("WHISPER_API_URL") + "/asr"
     with open(filepath, "rb") as f:
         files = {"audio_file": ("input.wav", f, "audio/wav")}
         print("Sending files", f)
