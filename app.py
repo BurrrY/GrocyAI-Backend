@@ -16,6 +16,8 @@ app = Flask(__name__)
 CORS(app)  # erlaubt alle Domains
 
 
+os.makedirs("uploads", exist_ok=True)
+
 main_prompt = ("You are an assistant managing the items in my household as well as the shoppinglist. "
                "Keep an eye on opened products and food which whill expire soon. use an informal tone but keep the answers short." 
                "The output is used for TTS. Don't add emojis. Keep the answers short. Always use the same language as in request.")
@@ -225,6 +227,7 @@ def tts():
 def upload_audio():
     if "audio" not in request.files:
         return jsonify({"error": "Keine Audiodatei erhalten"}), 400
+
 
     audio = request.files["audio"]
     path = os.path.join("uploads", "input.wav")
