@@ -163,7 +163,7 @@ def query_gpt(user_text: str) -> str:
 
     message = response.choices[0].message
     logger.debug('gpt-response',    extra={
-        'responsemessage': message,
+        'response': message,
     })
 
     if message.tool_calls:
@@ -185,12 +185,12 @@ def query_gpt(user_text: str) -> str:
         else:
             # Falls keine Funktion notwendig
             logger.debug('gpt-tool-call no-function-response',  extra={
-                'result': message.content,
+                'response': message.content,
             })
             return jsonify({"reply": message.content})
 
         logger.debug('gpt-tool-call function-response',  extra={
-            'result': result,
+            'response': result,
         })
         followup = client.chat.completions.create(
             model="gpt-4-1106-preview",
@@ -217,7 +217,7 @@ def query_gpt(user_text: str) -> str:
 
 
     logger.debug('gpt-tool message-response',  extra={
-        'message.content': message.content,
+        'response': message.content,
     })
     return jsonify({"reply": message.content})
 
@@ -242,7 +242,7 @@ def transcribe_with_whisper_server(filepath: str) -> str:
         print(response.text)
         if response.status_code == 200:
             logger.debug('whisper-response',  extra={
-                'response.text': response.text,
+                'response': response.text,
             })
             return response.text
         else:
@@ -256,7 +256,7 @@ def transcribe_with_whisper_server(filepath: str) -> str:
 def tts():
     text = request.json.get("text", "")
     logger.debug('tts-request',  extra={
-        'text': text,
+        'request': text,
     })
 
     if not text:
@@ -319,7 +319,7 @@ def query():
     data = request.json
     user_text = data.get("text", "")
     logger.debug("query-request", extra={
-        'user_text': user_text,
+        'request': user_text,
     })
 
     if not user_text:
