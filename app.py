@@ -233,7 +233,7 @@ def transcribe_with_whisper_server(filepath: str) -> str:
         logger.debug('whisper-request', extra={
             'whisper_url': url,
             'language': language,
-            'filename': filepath
+            'file': filepath
         })
 
 
