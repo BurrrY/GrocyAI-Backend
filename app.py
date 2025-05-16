@@ -224,12 +224,20 @@ def query_gpt(user_text: str) -> str:
 
 
 def transcribe_with_whisper_server(filepath: str) -> str:
-    url = os.environ.get("WHISPER_API_URL") + "/asr"
     with open(filepath, "rb") as f:
         files = {"audio_file": ("input.wav", f, "audio/wav")}
-        data = {"language": os.environ.get("WHISPER_LANGUAGE", "en")}  # Add language parameter
-        print("Sending files", f)
-        response = requests.post(url, files=files, data=data)
+        language = os.environ.get("WHISPER_LANGUAGE", "auto")
+        base_url = os.environ.get("WHISPER_API_URL") + "/asr"
+        url = f"{base_url}?language={language}"
+
+        logger.debug('whisper-request', extra={
+            'whisper_url': url,
+            'language': language,
+            'filename': filepath
+        })
+
+
+        response = requests.post(url, files=files)
 
         print(response.text)
         if response.status_code == 200:
