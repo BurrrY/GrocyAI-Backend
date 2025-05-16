@@ -4,3 +4,4 @@ pygrocy
 rapidfuzz
 flask_cors
 elevenlabs
+graypy

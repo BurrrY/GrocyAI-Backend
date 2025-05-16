@@ -5,7 +5,8 @@ import requests
 from flask import Flask, request, jsonify, send_file
 from openai import OpenAI
 import os
-
+import logging
+import graypy
 from my_grocy import *
 
 client = OpenAI(
@@ -15,13 +16,25 @@ client = OpenAI(
 app = Flask(__name__)
 CORS(app)  # erlaubt alle Domains
 
+# Create the logger
+logger = logging.getLogger('the_logger')
+logger.setLevel(logging.INFO)
 
 os.makedirs("uploads", exist_ok=True)
 
-main_prompt = ("You are an assistant managing the items in my household as well as the shoppinglist. "
+main_prompt = os.environ.get("GROCY_AI_PROMPT", "You are an assistant managing the items in my household as well as the shoppinglist. "
                "Keep an eye on opened products and food which whill expire soon. use an informal tone but keep the answers short." 
-               "The output is used for TTS. Don't add emojis. Keep the answers short. Always use the same language as in request. Always answer in german.")
+               "The output is used for TTS. Don't add emojis. Keep the answers short. Always use the same language as in request.")
 
+
+# Configure Graylog handler
+# Replace with your Graylog server details
+graylog_handler = graypy.GELFTCPHandler(os.environ.get("GRAYLOG_TCP_URL"), int(os.environ.get("GRAYLOG_TCP_PORT")))  # Use port 5514 instead of 514 if not running as root
+logger.addHandler(graylog_handler)
+
+# Also keep console logging if needed
+console_handler = logging.StreamHandler()
+logger.addHandler(console_handler)
 
 tools = [
     {
@@ -114,20 +127,24 @@ chats = {}
 
 @app.route("/chat", methods=["POST"])
 def chat():
+    logger.debug('chat upload endpoint accessed')
     data = request.get_json()
     user_text = data.get("text")
+    logger.debug('chat message received',  user_text)
     session = data.get("session", "default")
 
     if not user_text:
         return jsonify({"error": "Text fehlt"}), 400
 
     response = query_gpt(user_text)
+    logger.debug('chat response',  response)
 
     return response
 
 
 
 def query_gpt(user_text: str) -> str:
+    logger.debug('gpt-query',  user_text)
     response = client.chat.completions.create(
         model="gpt-4-1106-preview",
         messages=[
@@ -139,12 +156,14 @@ def query_gpt(user_text: str) -> str:
     )
 
     message = response.choices[0].message
+    logger.debug('gpt-response',  message)
     print(message)
 
     if message.tool_calls:
         tool_call = message.tool_calls[0]
         function_name = tool_call.function.name
         arguments = json.loads(tool_call.function.arguments)
+        logger.debug('gpt-tool-call function',  function_name)
 
         if function_name == "get_amount_per_name":
             result = get_amount_per_name(**arguments)
@@ -158,6 +177,7 @@ def query_gpt(user_text: str) -> str:
             # Falls keine Funktion notwendig
             return jsonify({"reply": message.content})
 
+        logger.debug('gpt-tool-call function-response',  result)
         followup = client.chat.completions.create(
             model="gpt-4-1106-preview",
             messages=[
@@ -176,7 +196,11 @@ def query_gpt(user_text: str) -> str:
             ]
         )
 
+        logger.debug('gpt-tool-call gpt-response',  followup.choices[0].message.content)
         return jsonify({"reply": followup.choices[0].message.content})
+
+
+    logger.debug('gpt-tool message-response',  message.content)
     return jsonify({"reply": message.content})
 
 
@@ -187,16 +211,21 @@ def transcribe_with_whisper_server(filepath: str) -> str:
         files = {"audio_file": ("input.wav", f, "audio/wav")}
         print("Sending files", f)
         response = requests.post(url, files=files)
+
         print(response.text)
         if response.status_code == 200:
+            logger.debug('whisper-response',  response.text)
             return response.text
         else:
+            logger.error('whisper-error-response',  response.text)
             raise Exception("Whisper-Serverfehler: " + response.text)
 
 
 @app.route("/tts", methods=["POST"])
 def tts():
     text = request.json.get("text", "")
+    logger.debug('tts-request',  text)
+
     if not text:
         return jsonify({"error": "Kein Text erhalten"}), 400
     api_key = os.getenv("ELEVEN_API_KEY")
@@ -234,9 +263,9 @@ def upload_audio():
     audio.save(path)
 
     try:
-        print("sending to whipser", path)
+        logger.debug("sending to whipser", path)
         user_text = transcribe_with_whisper_server(path)
-        print("got from whipser", user_text)
+        logger.debug("got from whipser", user_text)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -250,6 +279,7 @@ def upload_audio():
 def query():
     data = request.json
     user_text = data.get("text", "")
+    logger.debug("query-request", user_text)
 
     if not user_text:
         return jsonify({"error": "Text fehlt"}), 400
