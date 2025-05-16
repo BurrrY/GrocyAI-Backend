@@ -18,7 +18,7 @@ CORS(app)  # erlaubt alle Domains
 
 # Create the logger
 logger = logging.getLogger('the_logger')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 os.makedirs("uploads", exist_ok=True)
 
@@ -130,21 +130,27 @@ def chat():
     logger.debug('chat upload endpoint accessed')
     data = request.get_json()
     user_text = data.get("text")
-    logger.debug('chat message received',  user_text)
+    logger.debug('chat message received',  extra={
+        'user_text': user_text,
+    })
     session = data.get("session", "default")
 
     if not user_text:
         return jsonify({"error": "Text fehlt"}), 400
 
     response = query_gpt(user_text)
-    logger.debug('chat response',  response)
+    logger.debug('chat response',    extra={
+        'response': response,
+    })
 
     return response
 
 
 
 def query_gpt(user_text: str) -> str:
-    logger.debug('gpt-query',  user_text)
+    logger.debug('gpt-query',   extra={
+        'user_text': user_text,
+    })
     response = client.chat.completions.create(
         model="gpt-4-1106-preview",
         messages=[
@@ -156,14 +162,17 @@ def query_gpt(user_text: str) -> str:
     )
 
     message = response.choices[0].message
-    logger.debug('gpt-response',  message)
-    print(message)
+    logger.debug('gpt-response',    extra={
+        'message': message,
+    })
 
     if message.tool_calls:
         tool_call = message.tool_calls[0]
         function_name = tool_call.function.name
         arguments = json.loads(tool_call.function.arguments)
-        logger.debug('gpt-tool-call function',  function_name)
+        logger.debug('gpt-tool-call function',  extra={
+            'function_name': function_name,
+        })
 
         if function_name == "get_amount_per_name":
             result = get_amount_per_name(**arguments)
@@ -177,7 +186,9 @@ def query_gpt(user_text: str) -> str:
             # Falls keine Funktion notwendig
             return jsonify({"reply": message.content})
 
-        logger.debug('gpt-tool-call function-response',  result)
+        logger.debug('gpt-tool-call function-response',  extra={
+            'result': result,
+        })
         followup = client.chat.completions.create(
             model="gpt-4-1106-preview",
             messages=[
@@ -196,11 +207,15 @@ def query_gpt(user_text: str) -> str:
             ]
         )
 
-        logger.debug('gpt-tool-call gpt-response',  followup.choices[0].message.content)
+        logger.debug('gpt-tool-call gpt-response',  extra={
+            'response': followup.choices[0].message.content,
+        })
         return jsonify({"reply": followup.choices[0].message.content})
 
 
-    logger.debug('gpt-tool message-response',  message.content)
+    logger.debug('gpt-tool message-response',  extra={
+        'message.content': message.content,
+    })
     return jsonify({"reply": message.content})
 
 
@@ -214,17 +229,23 @@ def transcribe_with_whisper_server(filepath: str) -> str:
 
         print(response.text)
         if response.status_code == 200:
-            logger.debug('whisper-response',  response.text)
+            logger.debug('whisper-response',  extra={
+                'response.text': response.text,
+            })
             return response.text
         else:
-            logger.error('whisper-error-response',  response.text)
+            logger.error('whisper-error-response',  extra={
+                'response.text': response.text,
+            })
             raise Exception("Whisper-Serverfehler: " + response.text)
 
 
 @app.route("/tts", methods=["POST"])
 def tts():
     text = request.json.get("text", "")
-    logger.debug('tts-request',  text)
+    logger.debug('tts-request',  extra={
+        'text': text,
+    })
 
     if not text:
         return jsonify({"error": "Kein Text erhalten"}), 400
@@ -263,9 +284,11 @@ def upload_audio():
     audio.save(path)
 
     try:
-        logger.debug("sending to whipser", path)
+        logger.debug("sending to whipser")
         user_text = transcribe_with_whisper_server(path)
-        logger.debug("got from whipser", user_text)
+        logger.debug("got from whipser", extra={
+            'response': user_text,
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -279,7 +302,9 @@ def upload_audio():
 def query():
     data = request.json
     user_text = data.get("text", "")
-    logger.debug("query-request", user_text)
+    logger.debug("query-request", extra={
+        'user_text': user_text,
+    })
 
     if not user_text:
         return jsonify({"error": "Text fehlt"}), 400
