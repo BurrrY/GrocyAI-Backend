@@ -163,7 +163,7 @@ def query_gpt(user_text: str) -> str:
 
     message = response.choices[0].message
     logger.debug('gpt-response',    extra={
-        'message': message,
+        'responsemessage': message,
     })
 
     if message.tool_calls:
@@ -184,6 +184,9 @@ def query_gpt(user_text: str) -> str:
             result = set_amount_per_name(**arguments)
         else:
             # Falls keine Funktion notwendig
+            logger.debug('gpt-tool-call no-function-response',  extra={
+                'result': message.content,
+            })
             return jsonify({"reply": message.content})
 
         logger.debug('gpt-tool-call function-response',  extra={
@@ -248,6 +251,7 @@ def tts():
     })
 
     if not text:
+        logger.error("No text in /tts")
         return jsonify({"error": "Kein Text erhalten"}), 400
     api_key = os.getenv("ELEVEN_API_KEY")
     voice_id = os.getenv("ELEVEN_VOICE_ID")  # z. B. "21m00Tcm4TlvDq8ikWAM"
@@ -291,6 +295,9 @@ def upload_audio():
         })
 
     except Exception as e:
+        logger.error("Exception in upload-audio", extra={
+            'Exception': e,
+        })
         return jsonify({"error": str(e)}), 500
 
 
@@ -307,11 +314,14 @@ def query():
     })
 
     if not user_text:
+        logger.error("Kein user-text")
         return jsonify({"error": "Text fehlt"}), 400
     try:
         return query_gpt(user_text)
     except Exception as e:
-        print(e)
+        logger.error("Exception in query-request", extra={
+            'Exception': e,
+        })
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
