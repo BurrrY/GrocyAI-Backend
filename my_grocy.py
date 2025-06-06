@@ -106,6 +106,54 @@ def consumer_amount_per_name(product_name, amount):
         }
 
 
+def stock_shoppinglist_removeProduct(product_name, amount):
+    found_product = get_prod_from_stock(product_name)
+    print("Found Product: ", str(found_product.name))
+
+    if isinstance(found_product, Product):
+        grocy.remove_product_in_shopping_list(found_product.id, 1, amount)
+        return {
+            "name": found_product.name,
+            "removed_amount": amount,
+        }
+    else:
+        return {
+            "error": "Product not found",
+        }
+
+def stock_shoppinglist_addProduct(product_name, amount):
+    found_product = get_prod_from_stock(product_name)
+    print("Found Product: ", str(found_product.name))
+
+    if isinstance(found_product, Product):
+        grocy.add_product_to_shopping_list(found_product.id, 1, amount)
+        return {
+            "name": found_product.name,
+            "added_amount": amount,
+        }
+    else:
+        return {
+            "error": "Product not found",
+        }
+
+def get_shoppinglist():
+    theList =  grocy.shopping_list(True)
+    result= []
+    for item in theList:
+        serialized_item = {
+            'amount_on_list': item.amount if hasattr(item, 'amount') else None,
+            'name': item.product.name if hasattr(item.product, 'name') else None,
+            'amount_in_stock': item.product.available_amount  if hasattr(item.product, 'available_amount') else None,
+            "unit_singular": item.product.default_quantity_unit_purchase.name,
+            "unit_plural": item.product.default_quantity_unit_purchase.name_plural,
+            # Add any other attributes you need
+        }
+        result.append(serialized_item)
+
+    print(result)
+    return result
+
+
 def get_amount_per_name(product_name):
     found_product = get_prod_from_stock(product_name)
     print("Found Product: ", str(found_product))

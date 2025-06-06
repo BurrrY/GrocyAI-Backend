@@ -1,12 +1,12 @@
 import io
-import json
 from flask_cors import CORS
 import requests
 from flask import Flask, request, jsonify, send_file
 from openai import OpenAI
-import os
 import logging
 import graypy
+
+from backend.tools import tools, function_map
 from my_grocy import *
 
 client = OpenAI(
@@ -36,92 +36,6 @@ logger.addHandler(graylog_handler)
 console_handler = logging.StreamHandler()
 logger.addHandler(console_handler)
 
-tools = [
-    {
-        "type": "function",
-        "function": {
-        "name": "get_amount_per_name",
-        "description": "get the available amount of a product from grocy.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "product_name": {
-                    "type": "string",
-                    "description": "Name of the Product"
-                }
-            },
-            "required": ["product_name"]
-        }
-        }
-    },
-
-    {
-        "type": "function",
-        "function": {
-        "name": "consumer_amount_per_name",
-        "description": "eat, remove, consume or use a certain amount of a product",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "product_name": {
-                    "type": "string",
-                    "description": "Name of the Product"
-                },
-                "amount": {
-                    "type": "string",
-                    "description": "Consumed amount of the product"
-                }
-            },
-            "required": ["product_name", "amount"]
-        }
-        }
-    },
-
-    {
-        "type": "function",
-        "function": {
-        "name": "set_amount_per_name",
-        "description": "set the total amount of a product in stock",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "product_name": {
-                    "type": "string",
-                    "description": "Name of the Product"
-                },
-                "amount": {
-                    "type": "string",
-                    "description": "new amount of the product"
-                }
-            },
-            "required": ["product_name", "amount"]
-        }
-        }
-    },
-
-    {
-        "type": "function",
-        "function": {
-        "name": "add_amount_per_name",
-        "description": "purchase or added a certain amount of a product to the stock",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "product_name": {
-                    "type": "string",
-                    "description": "Name of the Product"
-                },
-                "amount": {
-                    "type": "string",
-                    "description": "additional amount of the product"
-                }
-            },
-            "required": ["product_name", "amount"]
-        }
-        }
-    }
-]
-
 # Chatverläufe (pro Session-ID, z.B. "default")
 chats = {}
 
@@ -144,7 +58,6 @@ def chat():
     })
 
     return response
-
 
 
 def query_gpt(user_text: str) -> str:
@@ -174,16 +87,10 @@ def query_gpt(user_text: str) -> str:
             'function_name': function_name,
         })
 
-        if function_name == "get_amount_per_name":
-            result = get_amount_per_name(**arguments)
-        elif function_name == "consumer_amount_per_name":
-            result = consumer_amount_per_name(**arguments)
-        elif function_name == "add_amount_per_name":
-            result = add_amount_per_name(**arguments)
-        elif function_name == "set_amount_per_name":
-            result = set_amount_per_name(**arguments)
+        if function_name in function_map:
+            result = function_map[function_name](**arguments)
         else:
-            # Falls keine Funktion notwendig
+
             logger.debug('gpt-tool-call no-function-response',  extra={
                 'response': message.content,
             })
@@ -335,4 +242,5 @@ def query():
 
 if __name__ == "__main__":
     logger.debug("Starting app")
+    logger.info("Connect to Grocy on URL: %s, Key: %s, Port: %s", os.environ.get("GROCY_API_URL"), os.environ.get("GROCY_API_KEY"), os.environ.get("GROCY_API_PORT"))
     app.run(host="0.0.0.0", port=5000)
