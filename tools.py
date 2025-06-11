@@ -1,7 +1,28 @@
 from my_grocy import get_amount_per_name, consumer_amount_per_name, add_amount_per_name, set_amount_per_name, \
-    get_shoppinglist, stock_shoppinglist_addProduct, stock_shoppinglist_removeProduct
+    get_shoppinglist, stock_shoppinglist_addProduct, stock_shoppinglist_removeProduct, get_mealplan
+
+function_map = {
+    "stock_shoppinglist_remove-product": stock_shoppinglist_removeProduct,
+    "stock_shoppinglist_add-product": stock_shoppinglist_addProduct,
+    "get_shoppinglist": get_shoppinglist,
+    "get_amount_per_name": get_amount_per_name,
+    "consumer_amount_per_name": consumer_amount_per_name,
+    "add_amount_per_name": add_amount_per_name,
+    "set_amount_per_name": set_amount_per_name,
+    "get_mealplan": get_mealplan
+}
+
 
 tools = [
+
+
+    {
+        "type": "function",
+        "function": {
+            "name": "get_mealplan",
+            "description": "Get the mealplan for today and the next few days, including the recipe.",
+        }
+    },
 
 
     {
@@ -143,12 +164,3 @@ tools = [
         }
     }
 ]
-function_map = {
-    "stock_shoppinglist_remove-product": stock_shoppinglist_removeProduct,
-    "stock_shoppinglist_add-product": stock_shoppinglist_addProduct,
-    "get_shoppinglist": get_shoppinglist,
-    "get_amount_per_name": get_amount_per_name,
-    "consumer_amount_per_name": consumer_amount_per_name,
-    "add_amount_per_name": add_amount_per_name,
-    "set_amount_per_name": set_amount_per_name
-}

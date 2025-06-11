@@ -1,5 +1,6 @@
 import logging
 import math
+from datetime import date
 
 from pygrocy2 import Grocy
 from pygrocy2.data_models.product import Product
@@ -142,6 +143,24 @@ def stock_shoppinglist_addProduct(product_name, amount):
         return {
             "error": "Product not found",
         }
+
+def get_mealplan():
+    theList = grocy.meal_plan(True, ['day>=' + date.today().strftime("%Y-%m-%d")])
+
+    result = {
+
+    }
+
+    result= []
+    for item in theList:
+        logger.debug(item.toJson())
+        result.append(item.toJson())
+
+    return {
+        "today": date.today().strftime("%Y-%m-%d"),
+        "mealplan":   result
+    }
+
 
 def get_shoppinglist():
     theList =  grocy.shopping_list(True)
