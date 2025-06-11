@@ -1,8 +1,11 @@
 import logging
-from pygrocy.data_models.product import Product
+import math
+
+from pygrocy2 import Grocy
+from pygrocy2.data_models.product import Product
 from rapidfuzz import process
 import os
-from pygrocy import Grocy
+
 from rapidfuzz import fuzz
 
 grocy = Grocy(os.environ.get("GROCY_API_URL"), os.environ.get("GROCY_API_KEY"), port = int(os.environ.get("GROCY_API_PORT")))
@@ -144,12 +147,17 @@ def get_shoppinglist():
     theList =  grocy.shopping_list(True)
     result= []
     for item in theList:
+        product = item.product
+
+        qu_conversionfactor = product.qu_conversion_factor_purchase_to_stock
+        amount_on_list = math.ceil(item.amount / qu_conversionfactor)
+
         serialized_item = {
-            'amount_on_list': item.amount if hasattr(item, 'amount') else None,
-            'name': item.product.name if hasattr(item.product, 'name') else None,
-            'amount_in_stock': item.product.available_amount  if hasattr(item.product, 'available_amount') else None,
-            "unit_singular": item.product.default_quantity_unit_purchase.name,
-            "unit_plural": item.product.default_quantity_unit_purchase.name_plural,
+            'amount_on_list': amount_on_list,
+            'name': product.name if hasattr(product, 'name') else None,
+            'amount_in_stock': product.available_amount  if hasattr(product, 'available_amount') else None,
+            "unit_singular": product.default_quantity_unit_purchase.name,
+            "unit_plural": product.default_quantity_unit_purchase.name_plural,
             # Add any other attributes you need
         }
         result.append(serialized_item)

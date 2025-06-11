@@ -1,7 +1,9 @@
 flask
 openai>=1.0.0
-pygrocy
+#pygrocy2
 rapidfuzz
 flask_cors
 elevenlabs
 graypy
+
+git+https://github.com/BurrrY/pygrocy2.git@main#egg=pygrocy2
