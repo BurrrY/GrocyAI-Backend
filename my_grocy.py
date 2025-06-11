@@ -1,9 +1,8 @@
-import json
-
+import logging
 from pygrocy.data_models.product import Product
 from rapidfuzz import process
 import os
-from pygrocy import Grocy, TransactionType
+from pygrocy import Grocy
 from rapidfuzz import fuzz
 
 grocy = Grocy(os.environ.get("GROCY_API_URL"), os.environ.get("GROCY_API_KEY"), port = int(os.environ.get("GROCY_API_PORT")))
@@ -15,13 +14,18 @@ def combined_score(c_query: str, target: str, *, score_cutoff=None, **kwargs) ->
         0.2 * fuzz.token_sort_ratio(c_query, target)
     )
 
+logger = None
+def set_logger(theLogger):
+    global logger
+    logger = theLogger
+
 
 def set_amount_per_name(product_name, amount):
     found_product = get_prod_from_stock(product_name)
-    print("Found Product: ", str(found_product))
+    logger.debug("Found Product: ", str(found_product))
 
     if isinstance(found_product, Product):
-        print(found_product)
+        logger.debug(found_product)
         grocy.inventory_product(new_amount=amount, product_id=found_product.id)
         return {
             "name": found_product.name,
@@ -37,10 +41,10 @@ def set_amount_per_name(product_name, amount):
 
 def add_amount_per_name(product_name, amount):
     found_product = get_prod_from_stock(product_name)
-    print("Found Product: ", str(found_product))
+    logger.debug("Found Product: ", str(found_product))
 
     if isinstance(found_product, Product):
-        print(found_product)
+        logger.debug(found_product)
         grocy.add_product(amount=amount, product_id=found_product.id, price=0)
         return {
             "name": found_product.name,
@@ -55,14 +59,14 @@ def add_amount_per_name(product_name, amount):
         }
 
 def get_prod_from_stock(product_name):
-    print("Searching for ", product_name)
+    logger.debug("Searching for ", product_name)
 
     found_product = None
     all_products=[]
     try:
         all_products = grocy.all_products()
     except Exception as e:
-        print(e)
+        logger.debug(e)
 
     name_map = {p.name: p for p in all_products}
 
@@ -71,7 +75,7 @@ def get_prod_from_stock(product_name):
         name_map.keys(),
         scorer=combined_score,
     )
-    print("Best Match: ", best_match)
+    logger.debug("Best Match: ", best_match)
 
 
     match_name, score, _ = best_match
@@ -88,10 +92,10 @@ def get_prod_from_stock(product_name):
 
 def consumer_amount_per_name(product_name, amount):
     found_product = get_prod_from_stock(product_name)
-    print("Found Product: ", str(found_product))
+    logger.debug("Found Product: ", str(found_product))
 
     if isinstance(found_product, Product):
-        print(found_product)
+        logger.debug(found_product)
         grocy.consume_product(found_product.id, amount)
         return {
             "name": found_product.name,
@@ -108,7 +112,7 @@ def consumer_amount_per_name(product_name, amount):
 
 def stock_shoppinglist_removeProduct(product_name, amount):
     found_product = get_prod_from_stock(product_name)
-    print("Found Product: ", str(found_product.name))
+    logger.debug("Found Product: ", str(found_product.name))
 
     if isinstance(found_product, Product):
         grocy.remove_product_in_shopping_list(found_product.id, 1, amount)
@@ -123,7 +127,7 @@ def stock_shoppinglist_removeProduct(product_name, amount):
 
 def stock_shoppinglist_addProduct(product_name, amount):
     found_product = get_prod_from_stock(product_name)
-    print("Found Product: ", str(found_product.name))
+    logger.debug("Found Product: ", str(found_product.name))
 
     if isinstance(found_product, Product):
         grocy.add_product_to_shopping_list(found_product.id, 1, amount)
@@ -150,16 +154,16 @@ def get_shoppinglist():
         }
         result.append(serialized_item)
 
-    print(result)
+    logger.debug(result)
     return result
 
 
 def get_amount_per_name(product_name):
     found_product = get_prod_from_stock(product_name)
-    print("Found Product: ", str(found_product))
+    logger.debug("Found Product: ", str(found_product))
 
     if isinstance(found_product, Product):
-        print(found_product)
+        logger.debug(found_product)
         return {
             "name": found_product.name,
             "amount": found_product.available_amount,
