@@ -6,7 +6,7 @@ from openai import OpenAI
 import logging
 import graypy
 
-from backend.tools import tools, function_map
+from tools import tools, function_map
 from my_grocy import *
 
 client = OpenAI(
@@ -242,5 +242,5 @@ def query():
 
 if __name__ == "__main__":
     logger.debug("Starting app")
-    logger.info("Connect to Grocy on URL: %s, Key: %s, Port: %s", os.environ.get("GROCY_API_URL"), os.environ.get("GROCY_API_KEY"), os.environ.get("GROCY_API_PORT"))
+    grocy.setLogger(logger)
     app.run(host="0.0.0.0", port=5000)
