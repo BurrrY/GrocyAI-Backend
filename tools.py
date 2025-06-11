@@ -1,4 +1,4 @@
-from backend.my_grocy import get_amount_per_name, consumer_amount_per_name, add_amount_per_name, set_amount_per_name, \
+from my_grocy import get_amount_per_name, consumer_amount_per_name, add_amount_per_name, set_amount_per_name, \
     get_shoppinglist, stock_shoppinglist_addProduct, stock_shoppinglist_removeProduct
 
 tools = [
